@@ -10,9 +10,8 @@ import static junit.framework.TestCase.assertEquals;
  */
 
 public class LazyFactoryTest {
-    private class IntSupplier implements Supplier<Integer> {
-        private Random random = new Random();
-
+    private static class IntSupplier implements Supplier<Integer> {
+        private static final Random random = new Random();
         public Integer get() {
             return random.nextInt(10000);
         }
@@ -46,7 +45,7 @@ public class LazyFactoryTest {
         multiThreadTest(lazy);
     }
 
-    public void multiThreadTest(final Lazy<Integer> lazy) {
+    private void multiThreadTest(final Lazy<Integer> lazy) {
         Thread[] threads = new Thread[20];
         final Integer[] res = new Integer[20];
 

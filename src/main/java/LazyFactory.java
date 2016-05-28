@@ -1,4 +1,3 @@
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 /**
@@ -6,10 +5,11 @@ import java.util.function.Supplier;
  */
 public class LazyFactory {
 
-    public static<T> Lazy<T> createLazy(final Supplier<T> supplier){
+    public static <T> Lazy<T> createLazy(final Supplier<T> supplier) {
         return new Lazy<T>() {
             private T result;
             private boolean hasResult = false;
+
             public T get() {
                 if (!hasResult) {
                     result = supplier.get();
@@ -20,15 +20,18 @@ public class LazyFactory {
         };
     }
 
-    public static<T> Lazy<T> createThreadLazy(final Supplier<T> supplier) {
+    public static <T> Lazy<T> createThreadLazy(final Supplier<T> supplier) {
         return new Lazy<T>() {
             private T result;
             private boolean hasResult = false;
+
             public T get() {
-                if(!hasResult) {
+                if (!hasResult) {
                     synchronized (supplier) {
-                        result = supplier.get();
-                        hasResult = true;
+                        if (!hasResult) {
+                            result = supplier.get();
+                            hasResult = true;
+                        }
                     }
                 }
                 return result;
@@ -36,16 +39,24 @@ public class LazyFactory {
         };
     }
 
-    public static<T> Lazy<T> createLockFreeLazy(final Supplier<T> supplier) {
-        class LockFreeLazy implements Lazy {
-            private AtomicReference<T> result = new AtomicReference<>();
+    public static <T> Lazy<T> createLockFreeLazy(final Supplier<T> supplier) {
+        class LockFreeLazy implements Lazy<T> {
+            private volatile T result;
+            private volatile Supplier<T> sup = supplier;
+
             public T get() {
-                if (result.get() == null) {
-                    result.compareAndSet(null, supplier.get());
+                if (sup != null) {
+                    synchronized (this) {
+                        if (sup != null) {
+                            result = sup.get();
+                            sup = null;
+                        }
+                    }
                 }
-                return result.get();
+                return result;
             }
         }
-        return (Lazy<T>) new LockFreeLazy();
+        ;
+        return new LockFreeLazy();
     }
 }
